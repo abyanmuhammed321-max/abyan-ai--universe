@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Abyan AI Universe</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#0f1724; --accent:#7c5cff; --muted:#9aa4bf; --glass: rgba(255,255,255,0.03);
+      --radius:12px; font-family: Inter, system-ui, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; min-height:100vh; background:linear-gradient(180deg,#071025 0%, #08122a 100%); color:#e6eef8}
+    header{display:flex;align-items:center;gap:16px;padding:22px 28px}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .mark{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#00d4ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#071025}
+    .title h1{margin:0;font-size:20px;letter-spacing:0.3px} .title p{margin:0;color:var(--muted);font-size:13px}
+    .container{display:grid;grid-template-columns:360px 1fr;gap:20px;padding:18px 28px}
+    .panel{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 6px 26px rgba(2,6,23,0.6)}
+    .left{position:sticky;top:18px;height:calc(100vh - 80px);overflow:auto}
+    .section-title{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .chat-list{display:flex;flex-direction:column;gap:8px}
+    .btn{background:var(--accent);border:none;color:#071025;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    .muted{color:var(--muted)}
+    .feature{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+    .usage{font-size:12px;color:var(--muted)}
+    /* Chat area */
+    .chat-area{display:flex;flex-direction:column;height:calc(100vh - 126px);overflow:hidden}
+    .messages{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+    .msg{max-width:80%;padding:12px;border-radius:12px;background:var(--glass);color:var(--muted);line-height:1.4}
+    .msg.ai{align-self:flex-start;background:linear-gradient(180deg,#061226,#09203a);color:#dff0ff}
+    .msg.user{align-self:flex-end;background:linear-gradient(180deg,#1b2336,#121826);color:#eaf0ff}
+    .composer{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,0.03);align-items:center}
+    .input{flex:1;padding:10px 12px;border-radius:10px;background:#071022;border:1px solid rgba(255,255,255,0.03);color:#eaf0ff}
+    .tools{display:flex;gap:8px;flex-direction:column}
+    /* image panel */
+    .images-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+    .img-card{background:#071528;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center;height:120px;overflow:hidden}
+    .img-card img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+    footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
+    @media(max-width:880px){
+      .container{grid-template-columns:1fr; padding:12px}
+      .left{position:relative;height:auto}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="mark">AI</div>
+      <div class="title">
+        <h1>Abyan AI Universe</h1>
+        <p>Smart tools: chat, image gen, TTS, STT, summarizer</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="panel left">
+      <div class="feature">
+        <div class="section-title">Quick Actions</div>
+        <div style="display:flex;gap:8px;">
+          <button id="new-chat" class="btn">New Chat</button>
+          <button id="summarize-btn" class="btn" style="background:#2ea6a4">Summarize</button>
+        </div>
+        <div class="usage">Use the chat to talk to Abyan. Try: "Explain quantum computing simply."</div>
+      </div>
+
+      <div class="feature">
+        <div class="section-title">Image Generator</div>
+        <input id="image-prompt" class="input" placeholder="Describe an image (e.g. purple nebula koi fish)" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="generate-image" class="btn">Generate</button>
+          <button id="download-last" class="btn" style="background:#4b9f4b">Download</button>
+        </div>
+        <div class="images-grid" id="images-grid"></div>
+      </div>
+
+      <div class="feature">
+        <div class="section-title">Speech</div>
+        <div style="display:flex;gap:8px;">
+          <button id="start-stt" class="btn" style="background:#ff9f1c">Start STT</button>
+          <button id="speak" class="btn" style="background:#7c5cff">TTS</button>
+        </div>
+        <div class="usage">Use STT to capture voice input; TTS to read AI replies.</div>
+      </div>
+
+      <div class="feature">
+        <div class="section-title">Local fallback</div>
+        <div class="usage">If you do not set an OpenAI key, Abyan will use local rules and canned replies.</div>
+      </div>
+    </aside>
+
+    <main class="panel">
+      <div class="chat-area">
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <input id="message-input" class="input" placeholder="Ask Abyan anything..." />
+          <div class="tools">
+            <button id="send" class="btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="panel">
+    Abyan AI Universe · Client-only demo. Add your OpenAI API key in the script to enable remote AI.
+  </footer>
+
+  <script>
+    // ---------- CONFIG ----------
+    // Put your OpenAI API key here to enable real AI features.
+    const OPENAI_API_KEY = ""; // <-- add key here, or leave empty to use fallback
+    const MODEL = "gpt-3.5-turbo";
+    // ----------------------------
+
+    const el = id => document.getElementById(id);
+    const messagesEl = el("messages");
+    const messageInput = el("message-input");
+    const sendBtn = el("send");
+    const newChatBtn = el("new-chat");
+    const summarizeBtn = el("summarize-btn");
+    const genImageBtn = el("generate-image");
+    const imagePrompt = el("image-prompt");
+    const imagesGrid = el("images-grid");
+    const downloadLastBtn = el("download-last");
+    const startSttBtn = el("start-stt");
+    const speakBtn = el("speak");
+
+    let conversation = [
+      {role: "system", content: "You are Abyan, a friendly helpful assistant."}
+    ];
+    let lastGeneratedImageUrl = "";
+
+    function addMessage(content, who="ai"){
+      const div = document.createElement("div");
+      div.className = "msg " + (who === "user" ? "user" : "ai");
+      div.innerText = content;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addUserMessage(content){
+      addMessage(content, "user");
+      conversation.push({role:"user", content});
+    }
+
+    function addAIMessage(content){
+      addMessage(content, "ai");
+      conversation.push({role:"assistant", content});
+    }
+
+    async function callOpenAIChat(messages){
+      const url = "https://api.openai.com/v1/chat/completions";
+      const body = {model: MODEL, messages};
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type":"application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify(body)
+      });
+      if(!resp.ok){
+        const text = await resp.text();
+        throw new Error("OpenAI error: " + resp.status + " " + text);
+      }
+      const data = await resp.json();
+      return data.choices[0].message.content;
+    }
+
+    async function callOpenAIImage(prompt){
+      const url = "https://api.openai.com/v1/images/generations";
+      const body = {prompt, n:1, size:"1024x1024"};
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type":"application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify(body)
+      });
+      if(!resp.ok){
+        const text = await resp.text();
+        throw new Error("Image API error: " + resp.status + " " + text);
+      }
+      const data = await resp.json();
+      // returns data[0].url or base64 depending on API shape
+      if(data.data && data.data[0] && data.data[0].b64_json){
+        return "data:image/png;base64," + data.data[0].b64_json;
+      }
+      if(data.data && data.data[0] && data.data[0].url){
+        return data.data[0].url;
+      }
+      throw new Error("Unexpected image response");
+    }
+
+    // Fallback local reply generator
+    function localAbyanReply(userText){
+      const t = userText.toLowerCase();
+      if(t.includes("hello") || t.includes("hi")) return "Hello! I'm Abyan — your local assistant. How can I help today?";
+      if(t.includes("summarize") || t.includes("summary")) return "Send me the text and I'll generate a concise summary (requires OpenAI for best results).";
+      if(t.includes("image") || t.includes("draw") || t.includes("generate")) return "I can generate images if you add an OpenAI key. Try describing the scene you want.";
+      if(t.includes("time")) return "Current time: " + new Date().toLocaleString();
+      if(t.length < 40) return "Interesting. Tell me more or ask me to summarize, translate, or generate an image.";
+      // short naive summarizer fallback
+      const sentences = userText.split(/[.?!]\s*/).filter(Boolean);
+      if(sentences.length > 1){
+        return "Summary (local): " + sentences.slice(0, Math.min(3, sentences.length)).join(". ") + (sentences.length>3 ? "..." : "");
+      }
+      return "I don't have internet access to call a remote model. Provide an OpenAI key in script to enable advanced features. Meanwhile, I can still answer small things.";
+    }
+
+    async function handleSend(){
+      const text = messageInput.value.trim();
+      if(!text) return;
+      addUserMessage(text);
+      messageInput.value = "";
+      // If OPENAI_API_KEY present -> real call
+      try{
+        if(OPENAI_API_KEY){
+          const assistantText = await callOpenAIChat(conversation);
+          addAIMessage(assistantText);
+        } else {
+          const reply = localAbyanReply(text);
+          addAIMessage(reply);
+        }
+      }catch(err){
+        addAIMessage("Error: " + err.message);
+      }
+    }
+
+    sendBtn.addEventListener("click", handleSend);
+    messageInput.addEventListener("keydown", (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+
+    newChatBtn.addEventListener("click", () => {
+      conversation = [{role:"system", content:"You are Abyan, a friendly helpful assistant."}];
+      messagesEl.innerHTML = "";
+      addAIMessage("New chat started. Ask me anything.");
+    });
+
+    summarizeBtn.addEventListener("click", async () => {
+      const selection = window.getSelection().toString() || prompt("Paste text to summarize:");
+      if(!selection) return;
+      addUserMessage("Summarize: " + selection.slice(0,200));
+      if(OPENAI_API_KEY){
+        try{
+          const messages = [
+            {role:"system", content:"You are a concise summarizer."},
+            {role:"user", content:"Please provide a short summary in 3-4 sentences:\n\n" + selection}
+          ];
+          const summary = await callOpenAIChat(messages);
+          addAIMessage(summary);
+        }catch(e){
+          addAIMessage("Error: " + e.message);
+        }
+      } else {
+        addAIMessage("Local summary: " + (selection.split(/[.?!]/).slice(0,2).join(". ") || selection.slice(0,200)));
+      }
+    });
+
+    // Image generation
+    genImageBtn.addEventListener("click", async () => {
+      const promptText = imagePrompt.value.trim();
+      if(!promptText){ alert("Enter an image prompt."); return; }
+      addUserMessage("Generate image: " + promptText);
+      let url = "";
+      if(OPENAI_API_KEY){
+        try{
+          addAIMessage("Generating image...");
+          url = await callOpenAIImage(promptText);
+          lastGeneratedImageUrl = url;
+          const card = document.createElement("div");
+          card.className = "img-card";
+          const img = document.createElement("img");
+          img.src = url;
+          card.appendChild(img);
+          imagesGrid.prepend(card);
+          addAIMessage("Image generated. You can download it with the Download button.");
+        }catch(e){
+          addAIMessage("Image generation error: " + e.message);
+        }
+      } else {
+        // local placeholder generation
+        addAIMessage("No API key. Displaying placeholder image.");
+        url = "https://picsum.photos/seed/" + encodeURIComponent(promptText) + "/800/800";
+        lastGeneratedImageUrl = url;
+        const card = document.createElement("div");
+        card.className = "img-card";
+        const img = document.createElement("img");
+        img.src = url;
+        card.appendChild(img);
+        imagesGrid.prepend(card);
+      }
+    });
+
+    downloadLastBtn.addEventListener("click", () => {
+      if(!lastGeneratedImageUrl){ alert("No image generated yet."); return; }
+      const a = document.createElement("a");
+      a.href = lastGeneratedImageUrl;
+      a.download = "abyan-image.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    // Speech-to-text (STT)
+    let recognition = null;
+    if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        messageInput.value = (messageInput.value ? messageInput.value + " " : "") + text;
+      };
+      recognition.onerror = (e) => { console.warn("STT error", e); alert("STT error: " + e.error); };
+      recognition.onend = () => { startSttBtn.innerText = "Start STT"; startSttBtn.style.background = "#ff9f1c"; };
+    } else {
+      startSttBtn.disabled = true;
+      startSttBtn.innerText = "STT not supported";
+    }
+
+    startSttBtn.addEventListener("click", () => {
+      if(!recognition) return;
+      if(startSttBtn.dataset.recording === "1"){
+        recognition.stop();
+        startSttBtn.dataset.recording = "0";
+        startSttBtn.innerText = "Start STT";
+        startSttBtn.style.background = "#ff9f1c";
+      } else {
+        recognition.start();
+        startSttBtn.dataset.recording = "1";
+        startSttBtn.innerText = "Stop STT";
+        startSttBtn.style.background = "#d14f4f";
+      }
+    });
+
+    // Text-to-speech (TTS) - reads last AI message
+    function speakText(text){
+      if(!("speechSynthesis" in window)){ alert("TTS not supported in this browser."); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US";
+      u.rate = 1;
+      u.pitch = 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    speakBtn.addEventListener("click", () => {
+      // speak last AI message or prompt
+      const msgs = Array.from(messagesEl.querySelectorAll(".msg.ai"));
+      if(msgs.length === 0){ alert("No AI message to speak."); return; }
+      const last = msgs[msgs.length - 1].innerText;
+      speakText(last);
+    });
+
+    // initial greeting
+    addAIMessage("Welcome to Abyan AI Universe. Start by typing a message or using tools on the left.");
+
+    // small UX: allow drag-drop images into grid
+    document.addEventListener("paste", async (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if(!items) return;
+      for(const it of items){
+        if(it.type.indexOf("image") !== -1){
+          const blob = it.getAsFile();
+          const url = URL.createObjectURL(blob);
+          lastGeneratedImageUrl = url;
+          const card = document.createElement("div");
+          card.className = "img-card";
+          const img = document.createElement("img");
+          img.src = url;
+          card.appendChild(img);
+          imagesGrid.prepend(card);
+          addAIMessage("Image pasted into gallery.");
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
